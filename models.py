@@ -1,8 +1,8 @@
 
 from typing import Type
 
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, Date
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date
+from sqlalchemy.orm import declarative_base, relationship
 from flask import jsonify
 from http import HTTPStatus as Status
 
@@ -36,15 +36,20 @@ class Restaurant(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    active = Column(Boolean, nullable=False)
+    contact = Column(String(255), nullable=True)
+    opening_hours = Column(String(225), nullable=True)
+    address = Column(String(225), nullable=True)
+
+    foods = relationship('Food', back_populates="restaurants", cascade="all, delete")
 
 
 class Food(Base):
     __tablename__ = 'foods'
 
     id = Column(Integer, primary_key=True)
-    restaurant_id = Column(Integer, ForeignKey("restaurants.id"),)
+    restaurant_id = Column(Integer, ForeignKey("restaurants.id", ondelete="CASCADE"))
     name = Column(String(255), nullable=False)
-    # day = Column(String, nullable=False)
+    day = Column(Date, nullable=True)
     price = Column(Float, nullable=True)
-    valid_from = Column(Date)
+
+    restaurants = relationship("Restaurant", back_populates="foods")

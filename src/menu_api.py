@@ -23,16 +23,41 @@ def version():  # put application's code here
                        {"version": __version__, 'app_name': __name__})
 
 
-@app.route('/restaurant_/<name>', methods=["POST", "UPDATE"])
-def restaurant(name):
-    if request.method == "POST":
+@app.route('/restaurant/<int:id_>', methods=["GET"])
+@app.route('/restaurant', methods=["GET"])
+def restaurants(id_ = 0):
+    try:
+        data = db.get(Restaurant, id_)
+        return status_json(Status.OK, 'Data about the restaurant were fetched.', data)
+    except Exception as e:
+        return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to get restaurant: {e}')
+
+
+@app.route('/restaurant/<name>', methods=["POST"])
+@app.route('/restaurant/<int:id_>', methods=["PUT"])
+def restaurant(name = None, id_ = None):
+    contact = request.args.get('contact')
+    opening_hours = request.args.get('opening_hours')
+    address = request.args.get('address')
+
+    if request.method == "PUT":
+        name = request.args.get('name')
+        put_dict: dict = {'id': id_, 'name': name, 'contact': contact, 'opening_hours': opening_hours, 'address': address}
+        put_dict = {k:v for k,v in put_dict.items() if v}
         try:
-            data = db.insert(Restaurant(name=name, active=True))
-            return status_json(Status.OK, 'Restaurant was added successfully.', data)
+            data = db.update(Restaurant, put_dict)
+            return status_json(Status.CREATED, 'Restaurant was updated successfully.', data)
         except Exception as e:
-            status_json(500, f'Failed to add restaurant: {e}')
-    if request.method == "UPDATE":
-        raise NotImplemented
+            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add restaurant: {e}')
+
+    try:
+        data = db.insert(Restaurant(name=name,
+                                    contact=contact,
+                                    opening_hours=opening_hours,
+                                    address=address))
+        return status_json(Status.CREATED, 'Restaurant was added successfully.', data)
+    except Exception as e:
+        return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add restaurant: {e}')
 
 
 if __name__ == '__main__':
