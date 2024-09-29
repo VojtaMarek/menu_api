@@ -7,8 +7,15 @@ from http import HTTPStatus as Status
 from db_manager import DatabaseManager
 from models import Restaurant, Food, status_json
 import datetime
+import os
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
+import logging
 
 app = Flask(__name__)
+
+app.config['JWT_SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'do-not-keep-your-secret-key-here'
+jwt = JWTManager(app)
+logger = logging.getLogger(__name__)
 
 db = DatabaseManager()
 
@@ -17,8 +24,14 @@ def version():  # put application's code here
     return status_json(Status.OK, 'Request was successful.',
                        {"version": __version__, 'app_name': __name__})
 
+@app.route('/token', methods=["GET"])
+def token():
+    access_token = create_access_token(identity='admin')
+    return status_json(Status.OK, 'Here is your token, enjoy!', {'token': access_token})
+
 @app.route('/restaurant/<name>', methods=["POST"])
 @app.route('/restaurant/<int:id_>', methods=["PUT", "DELETE"])
+@jwt_required()
 def restaurant(name = None, id_ = None):
     contact = request.args.get('contact')
     opening_hours = request.args.get('opening_hours')
@@ -64,6 +77,7 @@ def restaurants(id_ = None):
 
 @app.route('/food/<restaurant_id>/<name>', methods=["POST"])
 @app.route('/food/<int:id_>', methods=["PUT", "DELETE"])
+@jwt_required()
 def food(name = None, restaurant_id = None, id_ = None):
     day = request.args.get('day')
     price = request.args.get('price')
