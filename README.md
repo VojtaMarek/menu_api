@@ -23,8 +23,7 @@ Copy `config.example.py` to `config.py` and fill in all variables.
 
 `curl 0.0.0.0:8000/token`
 
-
-`curl -H "Authorization: Bearer <your-token>" -X PUT http://localhost:5000/restaurant/new_restaurant_name`
+`curl -H "Authorization: Bearer <your-token>" -X PUT http://0.0.0.0:8000/restaurant/new_restaurant_name`
 
 ### Run tests
 `pipenv run python -m pytest`
