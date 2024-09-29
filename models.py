@@ -1,5 +1,5 @@
 
-from typing import Type
+from typing import Type, Any
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, Date
 from sqlalchemy.orm import declarative_base, relationship
@@ -9,7 +9,7 @@ from http import HTTPStatus as Status
 Base = declarative_base()
 
 
-def status_json(code: int, message: str, data = None) -> Type[jsonify]:
+def status_json(code: int, message: str, data = None) -> tuple[Type[jsonify], int]:
     http_code_ranges = {"informational": Status(code).is_informational,
                         "success": Status(code).is_success,
                         "redirection": Status(code).is_redirection,
@@ -28,7 +28,7 @@ def status_json(code: int, message: str, data = None) -> Type[jsonify]:
         res.pop('data')
     else:
         res.pop('errors')
-    return jsonify(res)
+    return jsonify(res), code
 
 
 class Restaurant(Base):
