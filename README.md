@@ -10,11 +10,15 @@ Set up your database in `config.py` or export it as environment variables with n
 For running docker container, set up `DB_URL` in `Dockerfile`.
 
 ### Run Docker
-`git clone https://github.com/VojtaMarek/menu_api.git`
+1. `git clone https://github.com/VojtaMarek/menu_api.git`
 
-`cd menu_api`
+2. `cd menu_api`
 
-`docker build -t menu_api .`
+3. `docker build -t menu_api .`
+
+4. `docker run -d --name menu_api -p 5000:5000 menu_api`
+
+5. `docker exec -it menu_api /bin/bash`
 
 ### Add curl, in case you need to make http requests from the container
 `apt-get update && apt-get install -y curl`
@@ -27,7 +31,6 @@ For running docker container, set up `DB_URL` in `Dockerfile`.
 `curl -H "Authorization: Bearer <your-token>" -X PUT http://0.0.0.0:8000/restaurant/new_restaurant_name`
 
 ### Run tests from the container
-`docker exec -it <container_id> /bin/bash`
 `pipenv run pytest`
 
 
