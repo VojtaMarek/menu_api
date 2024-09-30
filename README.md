@@ -5,18 +5,19 @@ _Note: naming foods is used intentionally for demonstrating plurality of food, n
 
 Stack: Python 3.12, Flask, SQLAlchemy, MySQL (perhaps tested on SQLite)
 
-### Install
+### Config
+Set up your database in `config.py` or export it as environment variables with name `DB_URL`.
+For running docker container, set up `DB_URL` in `Dockerfile`.
+
+### Run Docker
 `git clone https://github.com/VojtaMarek/menu_api.git`
 
-`pipenv install`
+`cd menu_api`
 
-`apt install curl`
+`docker build -t menu_api .`
 
-### Config
-Copy `config.example.py` to `config.py` and fill in all variables.
-
-### Run Example
-`pipenv run gunicorn -b 0.0.0.0:8000 src.menu_api:app`
+### Add curl, in case you need to make http requests from the container
+`apt-get update && apt-get install -y curl`
 
 ### Use Examples
 `curl 0.0.0.0:8000/`
@@ -25,8 +26,10 @@ Copy `config.example.py` to `config.py` and fill in all variables.
 
 `curl -H "Authorization: Bearer <your-token>" -X PUT http://0.0.0.0:8000/restaurant/new_restaurant_name`
 
-### Run tests
-`pipenv run python -m pytest`
+### Run tests from the container
+`docker exec -it <container_id> /bin/bash`
+`pipenv run pytest`
+
 
 ### Version 
 0.1.0 - init

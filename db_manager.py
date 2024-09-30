@@ -1,10 +1,10 @@
+import os
 from copy import copy
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import logging
 
-from config import DB_URL
 from models import Restaurant, Food, Base
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,8 @@ def handle_exception(func):
 class DatabaseManager:
     def __init__(self):
         # Set up the engine and metadata
-        self.engine = create_engine(url=DB_URL+'?charset=utf8', echo=True, future=True)
+        url = os.environ.get('DB_URL')
+        self.engine = create_engine(url=url+'?charset=utf8', echo=True, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
