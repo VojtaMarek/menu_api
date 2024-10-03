@@ -20,18 +20,22 @@ For running docker container, set up `DB_URL` in `Dockerfile`.
 
 5. `docker exec -it menu_api /bin/bash`
 
-### Add curl, in case you need to make http requests from the container
+### Add curl
 `apt-get update && apt-get install -y curl`
 
-### Use Examples
+### Use Examples with curl
 `curl 0.0.0.0:8000/`
 
 `curl 0.0.0.0:8000/token`
 
-`curl -H "Authorization: Bearer <your-token>" -X PUT http://0.0.0.0:8000/restaurant/new_restaurant_name`
+`curl -H "Authorization: Bearer <your-token>" -X PUT http://0.0.0.0:8000/restaurants/new_restaurant_name`
 
 ### Run tests from the container
 `pipenv run pytest`
+
+
+### db diagram
+<img alt="img.png" height="400" src="db_diagram.png" title="db diagram"/>
 
 
 ### Version 
