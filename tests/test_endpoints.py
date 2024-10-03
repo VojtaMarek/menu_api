@@ -21,22 +21,22 @@ endpoints = [
     ('get', f'{url_prefix}/'),
 
     # restaurant
-    ('post', f'{url_prefix}/restaurant/test_name1?contact=test_c1&opening_hours=test_h1&address=test_a1'),
-    ('post', f'{url_prefix}/restaurant/test_name2?contact=test_c2&opening_hours=test_h2&address=test_a2'),
-    ('get', f'{url_prefix}/restaurant/1'),
-    ('put', f'{url_prefix}/restaurant/1?name=U%20Vočka&address=Vodičkova'),
+    ('post', f'{url_prefix}/restaurants/test_name1?contact=test_c1&opening_hours=test_h1&address=test_a1'),
+    ('post', f'{url_prefix}/restaurants/test_name2?contact=test_c2&opening_hours=test_h2&address=test_a2'),
+    ('get', f'{url_prefix}/restaurants/1'),
+    ('put', f'{url_prefix}/restaurants/1?name=U%20Vočka&address=Vodičkova'),
     ('get', f'{url_prefix}/restaurants'),
 
     # add food
     ('post', f'{url_prefix}/food/1/Svíce?day=2024-09-30&price=239'),
     ('post', f'{url_prefix}/food/1/Řízek?day=2024-09-30&price=199.9'),
     ('put', f'{url_prefix}/food/1?day=2024-10-01&price=249'),
-    ('get', f'{url_prefix}/foods/1'),
+    ('get', f'{url_prefix}/food/1'),
     ('delete', f'{url_prefix}/food/2'),  # řízek došel
 
     # delete restaurants, within the food (delete cascaded)
-    ('delete', f'{url_prefix}/restaurant/1'),
-    ('delete', f'{url_prefix}/restaurant/2'),
+    ('delete', f'{url_prefix}/restaurants/1'),
+    ('delete', f'{url_prefix}/restaurants/2'),
 ]
 
 
@@ -45,6 +45,7 @@ endpoints = [
 def test_endpoint_response(method, url):
     try:
         request_method = getattr(requests, method)
+        # res = request_method(url, headers=[])
         res = request_method(url, headers=[] if method == 'get' else headers)
     except (ConnectionError, TimeoutError) as e:
         assert False, e

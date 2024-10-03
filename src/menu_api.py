@@ -1,24 +1,98 @@
 __version__ = '0.1.0'
 
 
-from flask import Flask, request
+import os
+import logging
 from http import HTTPStatus as Status
+
+from flask import Flask, request
+from flask.views import MethodView
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required
 
 from db_manager import DatabaseManager
 from models import Restaurant, Food
-from tools import status_json
-import datetime
-import os
-from flask_jwt_extended import JWTManager, create_access_token, jwt_required
-import logging
+from tools import status_json, from_iso_day
 
 app = Flask(__name__)
-
 app.config['JWT_SECRET_KEY'] = os.environ.get('SECRET_KEY') or 'do-not-keep-your-secret-key-here'
 jwt = JWTManager(app)
+
 logger = logging.getLogger(__name__)
 
-db = DatabaseManager()
+
+class GeneralAPI(MethodView):
+    @staticmethod
+    def version():
+        return status_json(Status.OK, 'Request was successful.',
+                           {"version": __version__, 'app_name': __name__})
+
+    @staticmethod
+    def token():
+        access_token = create_access_token(identity='admin')
+        return status_json(Status.OK, 'Here is your token, enjoy!', {'token': access_token})
+
+
+class ModelAPI(MethodView):
+    init_every_request = False
+
+    def __init__(self, model):
+        self.model = model
+        self.db = DatabaseManager(model)
+
+    def get(self, id_ = None, group_id = None):
+        try:
+            data = self.db.get(self.model, id_, group_id)
+            return status_json(Status.OK, f'Data about the {self.model.__name__} were fetched.', data)
+        except Exception as e:
+            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to get {self.model.__name__}: {e}')
+
+    @jwt_required()
+    def put(self, id_):
+        args = {k: v for k, v in dict(request.args).items() if v}
+        if args.get('day'):
+            args['day'] = from_iso_day(args['day'])
+        args['id'] = id_
+        try:
+            data = self.db.update(self.model, args)
+            return status_json(Status.CREATED, f'Model {self.model.__name__} was updated successfully.', data)
+        except Exception as e:
+            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add to {self.model.__name__}: {e}')
+
+    @jwt_required()
+    def post(self, name, group_id = None):
+        args = {k: v for k, v in dict(request.args).items() if v}
+        args['name'] = name
+        if args.get('day'):
+            args['day'] = from_iso_day(args['day'])
+        if group_id:
+            args['restaurant_id'] = group_id
+        try:
+            data = self.db.insert(self.model(**args))
+            return status_json(Status.CREATED, f'Model {self.model.__name__} was added successfully.', data)
+        except Exception as e:
+            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add restaurant: {e}')
+
+    @jwt_required()
+    def delete(self, id_):
+        try:
+            data = self.db.delete(self.model, id_)
+            return status_json(Status.OK, f'Restaurant with id {id_} was deleted.', data)
+        except Exception as e:
+            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to delete restaurant: {e}')
+
+
+def register_api(model, name):
+    item = ModelAPI.as_view(f"{name}-item", model)
+    app.add_url_rule(f"/{name}/", view_func=item)
+    app.add_url_rule(f"/{name}/<int:id_>", view_func=item)
+    app.add_url_rule(f"/{name}/<int:group_id>/<int:id_>", view_func=item)
+    app.add_url_rule(f"/{name}/<name>", view_func=item)
+    app.add_url_rule(f"/{name}/<int:group_id>/<name>", view_func=item)
+
+
+# routes section
+register_api(Restaurant, "restaurants")
+register_api(Food, "food")
 
 @app.route('/', methods=["GET"])
 def version():  # put application's code here
@@ -29,102 +103,6 @@ def version():  # put application's code here
 def token():
     access_token = create_access_token(identity='admin')
     return status_json(Status.OK, 'Here is your token, enjoy!', {'token': access_token})
-
-@app.route('/restaurant/<name>', methods=["POST"])
-@app.route('/restaurant/<int:id_>', methods=["PUT", "DELETE"])
-@jwt_required()
-def restaurant(name = None, id_ = None):
-    contact = request.args.get('contact')
-    opening_hours = request.args.get('opening_hours')
-    address = request.args.get('address')
-
-    if request.method == "PUT":
-        name = request.args.get('name')
-        put_dict: dict = {'id': id_, 'name': name, 'contact': contact, 'opening_hours': opening_hours, 'address': address}
-        put_dict = {k:v for k,v in put_dict.items() if v}
-        try:
-            data = db.update(Restaurant, put_dict)
-            return status_json(Status.CREATED, 'Restaurant was updated successfully.', data)
-        except Exception as e:
-            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add restaurant: {e}')
-
-    if request.method == "POST":
-        try:
-            data = db.insert(Restaurant(name=name,
-                                        contact=contact,
-                                        opening_hours=opening_hours,
-                                        address=address))
-            return status_json(Status.CREATED, 'Restaurant was added successfully.', data)
-        except Exception as e:
-            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add restaurant: {e}')
-
-    if request.method == "DELETE":
-        try:
-            data = db.delete(Restaurant, id_)
-            return status_json(Status.OK, f'Restaurant with id {id_} was deleted.', data)
-        except Exception as e:
-            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to delete restaurant: {e}')
-
-
-@app.route('/restaurant/<int:id_>', methods=["GET"])
-@app.route('/restaurants', methods=["GET"])
-def restaurants(id_ = None):
-    try:
-        data = db.get(Restaurant, id_)
-        return status_json(Status.OK, 'Data about the restaurants were fetched.', data)
-    except Exception as e:
-        return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to get restaurant: {e}')
-
-
-@app.route('/food/<restaurant_id>/<name>', methods=["POST"])
-@app.route('/food/<int:id_>', methods=["PUT", "DELETE"])
-@jwt_required()
-def food(name = None, restaurant_id = None, id_ = None):
-    day = request.args.get('day')
-    price = request.args.get('price')
-    try:
-        day = datetime.date.fromisoformat(request.args.get('day')) if day else None
-        price = float(request.args.get('price')) if price else None
-    except ValueError as e:
-        return status_json(Status.BAD_REQUEST, f'Failed to add food: {e}')
-
-    if request.method == "PUT":
-        name = request.args.get('name')
-        put_dict: dict = {'id': id_, 'name': name, 'day': day, 'price': price}
-        put_dict = {k:v for k,v in put_dict.items() if v}
-        try:
-            data = db.update(Food, put_dict)
-            return status_json(Status.CREATED, 'Food was updated successfully.', data)
-        except Exception as e:
-            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add food: {e}')
-
-    if request.method == "POST":
-        try:
-            if not db.get(Restaurant, restaurant_id):
-                raise 'No restaurant with this ID.'
-            data = db.insert(Food(restaurant_id=restaurant_id,
-                                  name=name,
-                                  day=day,
-                                  price=price))
-            return status_json(Status.CREATED, 'Food was added successfully.', data)
-        except Exception as e:
-            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to add food: {e}')
-
-    if request.method == "DELETE":
-        try:
-            data = db.delete(Food, id_)
-            return status_json(Status.OK, f'Food with id {id_} was deleted.', data)
-        except Exception as e:
-            return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to delete food: {e}')
-
-
-@app.route('/foods/<int:restaurant_id>', methods=["GET"])
-def foods(restaurant_id):
-    try:
-        data = db.get(Food, restaurant_id)
-        return status_json(Status.OK, 'Data about the restaurant were fetched.', data)
-    except Exception as e:
-        return status_json(Status.INTERNAL_SERVER_ERROR, f'Failed to get food: {e}')
 
 
 if __name__ == '__main__':

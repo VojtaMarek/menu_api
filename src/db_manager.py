@@ -23,12 +23,13 @@ def handle_exception(func):
 
 
 class DatabaseManager:
-    def __init__(self):
+    def __init__(self, model = None):
         # Set up the engine and metadata
         url = os.environ.get('DB_URL') or config.DB_URL
         self.engine = create_engine(url=url+'?charset=utf8', echo=True, future=True)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
+        self.model = model
 
     @handle_exception
     def insert(self, record: Restaurant | Food):
@@ -44,17 +45,15 @@ class DatabaseManager:
             session.close()
 
     @handle_exception
-    def get(self, model, id_):
+    def get(self, model, id_, group_id):
         # Get data based on its type and ID.
         session = self.Session()
         try:
-            if isinstance(model, Food) and id_:
-                # For Food model expecting to get restaurant_id instead of primary key
-                return [self.serialize(i) for i in session.query(model).filter_by(restaurant_id=id_).all()]
+            if group_id and not id_:
+                return [self.serialize(i) for i in session.query(model).filter_by(restaurant_id=group_id).all()]
             elif id_:
                 return self.serialize(session.query(model).filter_by(id=id_).first())
             elif not id_:
-                #
                 return [self.serialize(i) for i in session.query(model).all()]
         finally:
             session.close()
