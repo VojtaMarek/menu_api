@@ -5,7 +5,8 @@ from flask import Flask, request
 from http import HTTPStatus as Status
 
 from db_manager import DatabaseManager
-from models import Restaurant, Food, status_json
+from models import Restaurant, Food
+from tools import status_json
 import datetime
 import os
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required
