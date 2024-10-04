@@ -20,18 +20,6 @@ jwt = JWTManager(app)
 logger = logging.getLogger(__name__)
 
 
-class GeneralAPI(MethodView):
-    @staticmethod
-    def version():
-        return status_json(Status.OK, 'Request was successful.',
-                           {"version": __version__, 'app_name': __name__})
-
-    @staticmethod
-    def token():
-        access_token = create_access_token(identity='admin')
-        return status_json(Status.OK, 'Here is your token, enjoy!', {'token': access_token})
-
-
 class ModelAPI(MethodView):
     init_every_request = False
 
